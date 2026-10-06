@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>太空生詞小蜜蜂</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@400;700&display=swap');
+
+        @keyframes pulse-win {
+            0% { transform: scale(1); text-shadow: 0 0 10px #48bb78; }
+            50% { transform: scale(1.1); text-shadow: 0 0 30px #48bb78, 0 0 60px #48bb78; }
+            100% { transform: scale(1); text-shadow: 0 0 10px #48bb78; }
+        }
+
+        .text-win-anim {
+            color: #48bb78;
+            animation: pulse-win 1.5s infinite;
+        }
+
+        .font-pixel {
+            font-family: 'Press Start 2P', system-ui, sans-serif;
+            line-height: 1.5;
+            letter-spacing: 2px;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: white;
+            font-family: 'Noto Sans TC', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            touch-action: none; /* 防止手機拖曳時畫面捲動 */
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 100vh;
+            background-color: #111;
+            box-shadow: 0 0 20px rgba(66, 153, 225, 0.3);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* UI Overlays */
+        .screen-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 10;
+        }
+
+        .pixel-btn {
+            font-family: 'Noto Sans TC', sans-serif;
+            font-weight: bold;
+            background-color: #3182ce;
+            border: 2px solid #63b3ed;
+            color: white;
+            padding: 12px 24px;
+            font-size: 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #2b6cb0;
+            transition: transform 0.1s, box-shadow 0.1s;
+            margin-top: 20px;
+        }
+
+        .pixel-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 #2b6cb0;
+        }
+
+        select {
+            font-family: 'Noto Sans TC', sans-serif;
+            padding: 10px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            background-color: #2d3748;
+            color: white;
+            border: 2px solid #4a5568;
+            margin-bottom: 20px;
+            outline: none;
+            max-width: 90%;
+        }
+
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 5;
+            box-sizing: border-box;
+        }
+
+        .hud-text {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 0px #000;
+        }
+
+        #target-display {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #ecc94b;
+            padding: 10px 20px;
+            border-radius: 20px;
+            text-align: center;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #speak-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            filter: drop-shadow(1px 1px 2px black);
+            transition: transform 0.1s;
+        }
+        
+        #speak-btn:active {
+            transform: scale(0.9);
+        }
+
+        .text-win { color: #48bb78; }
+        .text-lose { color: #f56565; }
+        .hidden { display: none !important; }
+
+        /* 語言切換按鈕 */
+        #lang-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: transparent;
+            color: #a0aec0;
+            border: 1px solid #a0aec0;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        /* 暫停按鈕 */
+        #pause-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background-color: transparent;
+            color: #a0aec0;
+            border: 1px solid #a0aec0;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <button id="lang-toggle">English</button>
+        <button id="pause-btn" class="hidden">暫停</button>
+
+        <div id="ui-layer">
+            <div id="hud" class="hidden">
+                <div class="hud-text">
+                    <span id="label-score">分數:</span> <span id="score-display" class="text-yellow-400">0</span><br>
+                    <span id="label-progress">進度:</span> <span id="progress-display" class="text-blue-300">0</span>
+                </div>
+                <div class="hud-text" id="lives-display">❤️❤️❤️</div>
+            </div>
+
+            <div id="target-display" class="hidden">
+                <div>
+                    <div class="text-sm text-gray-300" id="label-hint">擊落對應生詞：</div>
+                    <div id="target-word" class="text-2xl font-bold text-yellow-400">Pinyin / English</div>
+                </div>
+                <button id="speak-btn" title="朗讀">🔊</button>
+            </div>
+
+            <!-- 開始選單 -->
+            <div id="menu-screen" class="screen-overlay">
+                <h1 class="text-3xl font-bold text-blue-400 mb-6 drop-shadow-md text-center">🚀 太空生詞小蜜蜂</h1>
+                
+                <p id="label-instructions" class="text-center text-gray-300 mb-6 px-4">
+                    手指拖曳或滑鼠移動飛船<br>點擊畫面發射子彈<br>
+                    <span class="text-yellow-400 text-sm">打錯扣血扣分！全對過關！</span>
+                </p>
+
+                <select id="lesson-select">
+                    <!-- Options populated by JS -->
+                </select>
+                
+                <button id="start-btn" class="pixel-btn">START MISSION</button>
+            </div>
+
+            <!-- 遊戲結束/過關畫面 -->
+            <div id="game-over-screen" class="screen-overlay hidden text-center px-4">
+                <h1 id="end-title" class="text-3xl md:text-5xl mb-6 font-bold drop-shadow-md text-lose font-pixel">GAME OVER</h1>
+                <p class="font-sans text-xl mb-6 text-white"><span id="label-final-score">最終得分: </span><span id="final-score" class="text-yellow-400 font-bold text-2xl">0</span></p>
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 10px;">
+                    <button id="continue-btn" class="pixel-btn" style="margin-top: 0;">續關</button>
+                    <button id="restart-btn" class="pixel-btn" style="margin-top: 0; background-color: #4a5568; border-color: #2d3748; box-shadow: 0 6px 0 #1a202c;">回主選單</button>
+                </div>
+            </div>
+
+            <!-- 暫停選單 -->
+            <div id="pause-screen" class="screen-overlay hidden">
+                <h1 id="pause-title" class="text-4xl mb-8 font-bold drop-shadow-md text-blue-300">遊戲暫停</h1>
+                <div style="display: flex; gap: 20px; justify-content: center; flex-direction: column;">
+                    <button id="resume-btn" class="pixel-btn">繼續遊戲</button>
+                    <button id="quit-btn" class="pixel-btn" style="background-color: #e53e3e; border-color: #c53030; box-shadow: 0 6px 0 #9b2c2c;">回主選單</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const i18n = {
+            zh: {
+                toggleBtn: "English",
+                pauseBtn: "暫停",
+                pauseTitle: "遊戲暫停",
+                resumeBtn: "繼續遊戲",
+                quitBtn: "回主選單",
+                score: "分數:",
+                progress: "進度:",
+                hint: "擊落對應生詞：",
+                instructions: "手指拖曳或滑鼠移動飛船<br>點擊畫面發射子彈<br><span class=\"text-yellow-400\">打錯扣血扣分！全對過關！</span>",
+                finalScore: "最終得分: ",
+                alertVocab: "該課程詞彙不足，請選擇其他課程！",
+                winTitle: "MISSION CLEARED!",
+                loseTitle: "GAME OVER",
+                continueBtn: "續關",
+                menuBtn: "回主選單",
+                lessons: {
+                    all: "所有課程 (混合挑戰)",
+                    L01: "第一課：新同學",
+                    L02: "第二課：我爸爸做生意",
+                    L03: "第三課：去超級市場",
+                    L04: "第四課：我想吃漢堡",
+                    L05: "第五課：秋天快到了",
+                    L06: "第六課：農曆新年",
+                    L07: "第七課：早一點睡覺",
+                    L08: "第八課：我的寵物",
+                    L09: "第九課：音樂教室在北方",
+                    L10: "第十課：外公、外婆住在臺灣",
+                    L11: "第十一課：去動物園",
+                    L12: "第十二課：打網路電話"
+                }
+            },
+            en: {
+                toggleBtn: "中文",
+                pauseBtn: "PAUSE",
+                pauseTitle: "PAUSED",
+                resumeBtn: "RESUME",
+                quitBtn: "MAIN MENU",
+                score: "SCORE:",
+                progress: "LEFT:",
+                hint: "Shoot matching word:",
+                instructions: "Drag or move mouse to control ship<br>Tap/Click to shoot<br><span class=\"text-yellow-400\">Penalty for wrong hits! Clear all to win!</span>",
+                finalScore: "Final Score: ",
+                alertVocab: "Not enough vocabulary in this lesson, please select another!",
+                winTitle: "MISSION CLEARED!",
+                loseTitle: "GAME OVER",
+                continueBtn: "CONTINUE",
+                menuBtn: "MAIN MENU",
+                lessons: {
+                    all: "All Lessons (Mixed Challenge)",
+                    L01: "Lesson 1: New Classmate",
+                    L02: "Lesson 2: My Dad Does Business",
+                    L03: "Lesson 3: Going to the Supermarket",
+                    L04: "Lesson 4: I Want a Hamburger",
+                    L05: "Lesson 5: Autumn is Coming",
+                    L06: "Lesson 6: Lunar New Year",
+                    L07: "Lesson 7: Go to Bed Earlier",
+                    L08: "Lesson 8: My Pet",
+                    L09: "Lesson 9: Music Room is in the North",
+                    L10: "Lesson 10: Grandparents Live in Taiwan",
+                    L11: "Lesson 11: Going to the Zoo",
+                    L12: "Lesson 12: Making an Internet Call"
+                }
+            }
+        };
+
+        const rawVocabData = {
+            "L01": ["比較", "大家", "方友朋", "高興", "跟", "歡迎", "今年", "介紹", "自己", "看書", "認識", "現在", "新", "學", "游泳", "最", "華語", "張莉"],
+            "L02": ["幫", "電腦公司", "工作", "上班", "外公", "外婆", "一樣", "以前", "銀行", "醫生", "做生意", "以後"],
+            "L03": ["冰淇淋", "超級市場", "東西", "附近", "可以", "米", "買", "牛肉", "巧克力", "青菜", "糖果", "要", "魚"],
+            "L04": ["出去", "蛋炒飯", "餓", "漢堡", "快點", "了", "麵", "薯條", "湯", "晚餐", "晚飯", "先", "已經", "玉米", "再", "週末"],
+            "L05": ["變", "不錯", "白色", "春天", "草", "紅色", "黃", "還是", "花", "綠色", "漂亮", "秋天", "時候", "樹葉", "天氣", "院子", "顏色", "舒服"],
+            "L06": ["拜年", "放鞭炮", "給", "紅包", "會", "每", "那天", "年糕", "如果", "說", "台灣", "貼春聯", "新年", "下", "星期", "華人", "農曆"],
+            "L07": ["別", "肥皂", "乾淨", "該", "過", "趕快", "來不及", "累", "起床", "刷牙", "睡覺", "晚上", "忘", "洗", "洗澡", "洗臉", "用", "知道", "昨天"],
+            "L08": ["不見了", "寵物", "帶", "非常", "狗", "可愛", "貓", "去年", "送給", "上個月", "牠們", "兔子", "餵", "養", "隻", "散步"],
+            "L09": ["北方", "東方", "方向", "告訴", "教室", "南方", "所以", "它", "校門口", "西方", "因為", "足球場", "指北針", "指南針"],
+            "L10": ["本來", "法國", "舅舅", "看", "旅行", "紐約", "臺北", "臺南", "退休", "一次", "住在", "暑假"],
+            "L11": ["不但", "脖子", "長頸鹿", "大象", "動物園", "猴子", "看到", "老虎", "胖", "企鵝", "玩", "熊貓", "希望", "這一次", "長", "真"],
+            "L12": ["啊", "過來", "很久", "好好", "看起來", "沒問題", "上課", "說話", "瘦", "網路", "寫", "信", "有意思", "一定", "影像", "長高"]
+        };
+
+        const dict = {
+            "比較": { pinyin: "bǐ jiào", en: "to compare" }, "大家": { pinyin: "dà jiā", en: "everyone" }, "方友朋": { pinyin: "Fāng Yǒupéng", en: "Fang Youpeng" }, "高興": { pinyin: "gāo xìng", en: "happy" }, "跟": { pinyin: "gēn", en: "with" }, "歡迎": { pinyin: "huān yíng", en: "welcome" }, "今年": { pinyin: "jīn nián", en: "this year" }, "介紹": { pinyin: "jiè shào", en: "to introduce" }, "自己": { pinyin: "zì jǐ", en: "oneself" }, "看書": { pinyin: "kàn shū", en: "read book" }, "認識": { pinyin: "rèn shi", en: "to know" }, "現在": { pinyin: "xiàn zài", en: "now" }, "新": { pinyin: "xīn", en: "new" }, "學": { pinyin: "xué", en: "to learn" }, "游泳": { pinyin: "yóu yǒng", en: "swim" }, "最": { pinyin: "zuì", en: "most" }, "華語": { pinyin: "Huá yǔ", en: "Chinese" }, "張莉": { pinyin: "Zhāng Lì", en: "Zhang Li" },
+            "幫": { pinyin: "bāng", en: "to help" }, "電腦公司": { pinyin: "diàn nǎo", en: "computer company" }, "工作": { pinyin: "gōng zuò", en: "work" }, "上班": { pinyin: "shàng bān", en: "go to work" }, "外公": { pinyin: "wài gōng", en: "grandfather" }, "外婆": { pinyin: "wài pó", en: "grandmother" }, "一樣": { pinyin: "yí yàng", en: "same" }, "以前": { pinyin: "yǐ qián", en: "before" }, "銀行": { pinyin: "yín háng", en: "bank" }, "醫生": { pinyin: "yī shēng", en: "doctor" }, "做生意": { pinyin: "zuò shēng yì", en: "do business" }, "以後": { pinyin: "yǐ hòu", en: "after" },
+            "冰淇淋": { pinyin: "bīng qí lín", en: "ice cream" }, "超級市場": { pinyin: "chāo jí", en: "supermarket" }, "東西": { pinyin: "dōng xi", en: "thing" }, "附近": { pinyin: "fù jìn", en: "nearby" }, "可以": { pinyin: "kě yǐ", en: "can" }, "米": { pinyin: "mǐ", en: "rice" }, "買": { pinyin: "mǎi", en: "to buy" }, "牛肉": { pinyin: "niú ròu", en: "beef" }, "巧克力": { pinyin: "qiǎo kè lì", en: "chocolate" }, "青菜": { pinyin: "qīng cài", en: "vegetables" }, "糖果": { pinyin: "táng guǒ", en: "candy" }, "要": { pinyin: "yào", en: "to want" }, "魚": { pinyin: "yú", en: "fish" },
+            "出去": { pinyin: "chū qù", en: "go out" }, "蛋炒飯": { pinyin: "dàn chǎo fàn", en: "fried rice" }, "餓": { pinyin: "è", en: "hungry" }, "漢堡": { pinyin: "hàn bǎo", en: "hamburger" }, "快點": { pinyin: "kuài diǎn", en: "hurry up" }, "了": { pinyin: "le", en: "(particle)" }, "麵": { pinyin: "miàn", en: "noodles" }, "薯條": { pinyin: "shǔ tiáo", en: "french fries" }, "湯": { pinyin: "tāng", en: "soup" }, "晚餐": { pinyin: "wǎn cān", en: "dinner" }, "晚飯": { pinyin: "wǎn fàn", en: "dinner" }, "先": { pinyin: "xiān", en: "first" }, "已經": { pinyin: "yǐ jīng", en: "already" }, "玉米": { pinyin: "yù mǐ", en: "corn" }, "再": { pinyin: "zài", en: "again" }, "週末": { pinyin: "zhōu mò", en: "weekend" },
+            "變": { pinyin: "biàn", en: "to change" }, "不錯": { pinyin: "bú cuò", en: "not bad" }, "白色": { pinyin: "bái sè", en: "white" }, "春天": { pinyin: "chūn tiān", en: "spring" }, "草": { pinyin: "cǎo", en: "grass" }, "紅色": { pinyin: "hóng sè", en: "red" }, "黃": { pinyin: "huáng", en: "yellow" }, "還是": { pinyin: "hái shì", en: "or/still" }, "花": { pinyin: "huā", en: "flower" }, "綠色": { pinyin: "lǜ sè", en: "green" }, "漂亮": { pinyin: "piào liàng", en: "beautiful" }, "秋天": { pinyin: "qiū tiān", en: "autumn" }, "時候": { pinyin: "shí hòu", en: "time" }, "樹葉": { pinyin: "shù yè", en: "leaves" }, "天氣": { pinyin: "tiān qì", en: "weather" }, "院子": { pinyin: "yuàn zi", en: "yard" }, "顏色": { pinyin: "yán sè", en: "color" }, "舒服": { pinyin: "shū fú", en: "comfortable" },
+            "拜年": { pinyin: "bài nián", en: "New Year greeting" }, "放鞭炮": { pinyin: "fàng biān", en: "firecrackers" }, "給": { pinyin: "gěi", en: "to give" }, "紅包": { pinyin: "hóng bāo", en: "red envelope" }, "會": { pinyin: "huì", en: "will/can" }, "每": { pinyin: "měi", en: "every" }, "那天": { pinyin: "nà tiān", en: "that day" }, "年糕": { pinyin: "nián gāo", en: "rice cake" }, "如果": { pinyin: "rú guǒ", en: "if" }, "說": { pinyin: "shuō", en: "to say" }, "台灣": { pinyin: "Tái wān", en: "Taiwan" }, "貼春聯": { pinyin: "tiē chūn", en: "spring couplets" }, "新年": { pinyin: "xīn nián", en: "New Year" }, "下": { pinyin: "xià", en: "under/next" }, "星期": { pinyin: "xīng qī", en: "week" }, "華人": { pinyin: "Huá rén", en: "Chinese" }, "農曆": { pinyin: "nóng lì", en: "lunar calendar" },
+            "別": { pinyin: "bié", en: "don't" }, "肥皂": { pinyin: "féi zào", en: "soap" }, "乾淨": { pinyin: "gān jìng", en: "clean" }, "該": { pinyin: "gāi", en: "should" }, "過": { pinyin: "guò", en: "to pass" }, "趕快": { pinyin: "gǎn kuài", en: "hurry up" }, "來不及": { pinyin: "lái bù jí", en: "too late" }, "累": { pinyin: "lèi", en: "tired" }, "起床": { pinyin: "qǐ chuáng", en: "get up" }, "刷牙": { pinyin: "shuā yá", en: "brush teeth" }, "睡覺": { pinyin: "shuì jiào", en: "to sleep" }, "晚上": { pinyin: "wǎn shang", en: "evening" }, "忘": { pinyin: "wàng", en: "forget" }, "洗": { pinyin: "xǐ", en: "to wash" }, "洗澡": { pinyin: "xǐ zǎo", en: "take a bath" }, "洗臉": { pinyin: "xǐ liǎn", en: "wash face" }, "用": { pinyin: "yòng", en: "to use" }, "知道": { pinyin: "zhī dào", en: "to know" }, "昨天": { pinyin: "zuó tiān", en: "yesterday" },
+            "不見了": { pinyin: "bú jiàn", en: "disappeared" }, "寵物": { pinyin: "chǒng wù", en: "pet" }, "帶": { pinyin: "dài", en: "to bring" }, "非常": { pinyin: "fēi cháng", en: "very" }, "狗": { pinyin: "gǒu", en: "dog" }, "可愛": { pinyin: "kě ài", en: "cute" }, "貓": { pinyin: "māo", en: "cat" }, "去年": { pinyin: "qù nián", en: "last year" }, "送給": { pinyin: "sòng gěi", en: "give to" }, "上個月": { pinyin: "shàng ge", en: "last month" }, "牠們": { pinyin: "tā men", en: "they (animals)" }, "兔子": { pinyin: "tù zi", en: "rabbit" }, "餵": { pinyin: "wèi", en: "to feed" }, "養": { pinyin: "yǎng", en: "to raise" }, "隻": { pinyin: "zhī", en: "(measure word)" }, "散步": { pinyin: "sàn bù", en: "take a walk" },
+            "北方": { pinyin: "běi fāng", en: "north" }, "東方": { pinyin: "dōng fāng", en: "east" }, "方向": { pinyin: "fāng xiàng", en: "direction" }, "告訴": { pinyin: "gào sù", en: "to tell" }, "教室": { pinyin: "jiào shì", en: "classroom" }, "南方": { pinyin: "nán fāng", en: "south" }, "所以": { pinyin: "suǒ yǐ", en: "so" }, "它": { pinyin: "tā", en: "it" }, "校門口": { pinyin: "xiào mén", en: "school gate" }, "西方": { pinyin: "xī fāng", en: "west" }, "因為": { pinyin: "yīn wèi", en: "because" }, "足球場": { pinyin: "zú qiú", en: "football field" }, "指北針": { pinyin: "zhǐ běi", en: "compass" }, "指南針": { pinyin: "zhǐ nán", en: "compass" },
+            "本來": { pinyin: "běn lái", en: "originally" }, "法國": { pinyin: "Fǎ guó", en: "France" }, "舅舅": { pinyin: "jiù jiù", en: "uncle" }, "看": { pinyin: "kàn", en: "to see" }, "旅行": { pinyin: "lǚ xíng", en: "travel" }, "紐約": { pinyin: "Niǔ yuē", en: "New York" }, "臺北": { pinyin: "Tái běi", en: "Taipei" }, "臺南": { pinyin: "Tái nán", en: "Tainan" }, "退休": { pinyin: "tuì xiū", en: "retire" }, "一次": { pinyin: "yí cì", en: "once" }, "住在": { pinyin: "zhù zài", en: "live in" }, "暑假": { pinyin: "shǔ jià", en: "summer vacation" },
+            "不但": { pinyin: "bú dàn", en: "not only" }, "脖子": { pinyin: "bó zi", en: "neck" }, "長頸鹿": { pinyin: "cháng jǐng", en: "giraffe" }, "大象": { pinyin: "dà xiàng", en: "elephant" }, "動物園": { pinyin: "dòng wù", en: "zoo" }, "猴子": { pinyin: "hóu zi", en: "monkey" }, "看到": { pinyin: "kàn dào", en: "saw" }, "老虎": { pinyin: "lǎo hǔ", en: "tiger" }, "胖": { pinyin: "pàng", en: "fat" }, "企鵝": { pinyin: "qǐ é", en: "penguin" }, "玩": { pinyin: "wán", en: "to play" }, "熊貓": { pinyin: "xióng māo", en: "panda" }, "希望": { pinyin: "xī wàng", en: "to hope" }, "這一次": { pinyin: "zhè yí cì", en: "this time" }, "長": { pinyin: "cháng", en: "long" }, "真": { pinyin: "zhēn", en: "really" },
+            "啊": { pinyin: "a", en: "ah" }, "過來": { pinyin: "guò lái", en: "come over" }, "很久": { pinyin: "hěn jiǔ", en: "long time" }, "好好": { pinyin: "hǎo hǎo", en: "well" }, "看起來": { pinyin: "kàn qǐ lái", en: "looks like" }, "沒問題": { pinyin: "méi wèn tí", en: "no problem" }, "上課": { pinyin: "shàng kè", en: "attend class" }, "說話": { pinyin: "shuō huà", en: "speak" }, "瘦": { pinyin: "shòu", en: "thin" }, "網路": { pinyin: "wǎng lù", en: "internet" }, "寫": { pinyin: "xiě", en: "write" }, "信": { pinyin: "xìn", en: "letter" }, "有意思": { pinyin: "yǒu yì si", en: "interesting" }, "一定": { pinyin: "yí dìng", en: "certainly" }, "影像": { pinyin: "yǐng xiàng", en: "image" }, "長高": { pinyin: "zhǎng gāo", en: "grow taller" }
+        };
+
+        // --- 音效系統 (使用 Tone.js) ---
+        const SoundFX = {
+            synth: null,
+            noise: null,
+            fmSynth: null,
+            isReady: false,
+            lastWrongTime: 0,
+            init: async function() {
+                if(this.isReady) return;
+                try {
+                    await Tone.start(); // 必須 await 以解除瀏覽器靜音限制
+                    
+                    // 改用 Square 方波，創造復古 8-bit 遊戲感 (並調大音量)
+                    this.synth = new Tone.PolySynth(Tone.Synth, {
+                        oscillator: { type: "square" },
+                        envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }
+                    }).toDestination();
+                    this.synth.volume.value = -2; // 從 -10 調大到 -2
+
+                    this.noise = new Tone.NoiseSynth({
+                        noise: { type: 'pink' },
+                        envelope: { attack: 0.01, decay: 0.2, sustain: 0 }
+                    }).toDestination();
+                    this.noise.volume.value = -2;
+
+                    this.fmSynth = new Tone.FMSynth({
+                        oscillator: { type: "sawtooth" },
+                        envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.1 }
+                    }).toDestination();
+                    this.fmSynth.volume.value = 0; // 調大到 0
+                    
+                    this.isReady = true;
+                } catch(e) { console.warn("音效載入失敗", e); }
+            },
+            shoot: function() {
+                // 復古雷射槍聲
+                if(this.synth) this.synth.triggerAttackRelease("C6", "32n");
+            },
+            hitTarget: function() {
+                // 射對：清脆的 8-bit 升調得分聲 (叮-叮！)
+                if(this.synth) {
+                    const now = Tone.now();
+                    this.synth.triggerAttackRelease("E5", "32n", now);
+                    this.synth.triggerAttackRelease("B5", "32n", now + 0.08);
+                    this.synth.triggerAttackRelease("E6", "16n", now + 0.16);
+                }
+            },
+            hitWrong: function() {
+                // 射錯：低沉的錯誤/扣血嗡嗡聲，加入節流避免短時間重複觸發報錯
+                const now = Tone.now();
+                if (now - this.lastWrongTime < 0.1) return; 
+                this.lastWrongTime = now;
+
+                if(this.noise) this.noise.triggerAttackRelease("8n", now);
+                if(this.fmSynth) this.fmSynth.triggerAttackRelease("C2", "8n", now);
+            },
+            heal: function() {
+                if(this.synth) {
+                    const now = Tone.now();
+                    this.synth.triggerAttackRelease("C5", "16n", now);
+                    this.synth.triggerAttackRelease("E5", "16n", now + 0.1);
+                    this.synth.triggerAttackRelease("G5", "16n", now + 0.2);
+                    this.synth.triggerAttackRelease("C6", "16n", now + 0.3);
+                }
+            },
+            win: function() {
+                if(this.synth) this.synth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "2n");
+            },
+            lose: function() {
+                // 改用 PolySynth 避免單音合成器時間重疊導致 Tone.js 報錯
+                if(this.synth) {
+                    const now = Tone.now();
+                    this.synth.triggerAttackRelease("E3", "8n", now);
+                    this.synth.triggerAttackRelease("C3", "2n", now + 0.25);
+                }
+            }
+        };
+
+        // --- 外星人造型庫 (1 表示畫素, 0 表示空白) ---
+        const alienShapes = [
+            [ // 1: Squid (經典章魚)
+                [0,0,0,1,1,0,0,0],
+                [0,0,1,1,1,1,0,0],
+                [0,1,1,1,1,1,1,0],
+                [1,1,0,1,1,0,1,1],
+                [1,1,1,1,1,1,1,1],
+                [0,0,1,0,0,1,0,0],
+                [0,1,0,1,1,0,1,0],
+                [1,0,1,0,0,1,0,1]
+            ],
+            [ // 2: Crab (經典螃蟹)
+                [0,0,1,0,0,0,0,1,0,0],
+                [0,0,0,1,0,0,1,0,0,0],
+                [0,0,1,1,1,1,1,1,0,0],
+                [0,1,1,0,1,1,0,1,1,0],
+                [1,1,1,1,1,1,1,1,1,1],
+                [1,0,1,1,1,1,1,1,0,1],
+                [1,0,1,0,0,0,0,1,0,1],
+                [0,0,0,1,1,1,1,0,0,0]
+            ],
+            [ // 3: Skull (外星骷髏)
+                [0,0,0,0,1,1,0,0,0,0],
+                [0,0,0,1,1,1,1,0,0,0],
+                [0,0,1,1,1,1,1,1,0,0],
+                [0,1,1,0,1,1,0,1,1,0],
+                [0,1,1,1,1,1,1,1,1,0],
+                [0,0,0,1,0,0,1,0,0,0],
+                [0,0,1,0,1,1,0,1,0,0],
+                [0,1,0,1,0,0,1,0,1,0]
+            ]
+        ];
+        
+        // --- 外星人顏色盤 ---
+        const alienColors = ['#f56565', '#48bb78', '#4299e1', '#ed8936', '#9f7aea', '#ecc94b', '#f687b3'];
+
+        let currentLang = 'zh';
+        let remainingVocabList = []; 
+        let currentTargetWord = null;
+        let animationId;
+        let winAnimId; // 用於控制煙火特效迴圈
+        
+        let gameState = 'MENU';
+        let score = 0;
+        let lives = 3;
+        let level = 1;
+        let lastSpawnTime = 0;
+        let baseSpeed = 1.0;
+        
+        let player = null;
+        let enemies = [];
+        let bullets = [];
+        let particles = [];
+        let stars = [];
+        let items = [];
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let GAME_WIDTH = canvas.width;
+        let GAME_HEIGHT = canvas.height;
+
+        function initSelectOptions() {
+            const select = document.getElementById('lesson-select');
+            select.innerHTML = '';
+            const lessons = i18n[currentLang].lessons;
+            for (let key in lessons) {
+                let opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = lessons[key];
+                select.appendChild(opt);
+            }
+        }
+
+        function updateLanguage() {
+            const langData = i18n[currentLang];
+            document.getElementById('lang-toggle').textContent = langData.toggleBtn;
+            document.getElementById('pause-btn').textContent = langData.pauseBtn;
+            document.getElementById('pause-title').textContent = langData.pauseTitle;
+            document.getElementById('resume-btn').textContent = langData.resumeBtn;
+            document.getElementById('quit-btn').textContent = langData.quitBtn;
+            document.getElementById('label-score').textContent = langData.score;
+            document.getElementById('label-progress').textContent = langData.progress;
+            document.getElementById('label-hint').textContent = langData.hint;
+            document.getElementById('label-instructions').innerHTML = langData.instructions;
+            document.getElementById('label-final-score').textContent = langData.finalScore;
+            document.getElementById('continue-btn').textContent = langData.continueBtn;
+            document.getElementById('restart-btn').textContent = langData.menuBtn;
+
+            const select = document.getElementById('lesson-select');
+            const currentVal = select.value;
+            initSelectOptions();
+            if(select.querySelector(`option[value="${currentVal}"]`)) {
+                select.value = currentVal;
+            }
+        }
+
+        document.getElementById('lang-toggle').addEventListener('click', () => {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            updateLanguage();
+        });
+
+        function resizeCanvas() {
+            const container = document.getElementById('game-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            GAME_WIDTH = canvas.width;
+            GAME_HEIGHT = canvas.height;
+            if (player) {
+                player.y = GAME_HEIGHT - player.height - 30;
+                if (player.x > GAME_WIDTH) player.x = GAME_WIDTH / 2;
+            }
+            initStars();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // 滑鼠與觸控追蹤
+        let inputX = null;
+        let isFiring = false;
+
+        function handleMove(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches && e.touches.length > 0) {
+                inputX = e.touches[0].clientX - rect.left;
+            } else {
+                inputX = e.clientX - rect.left;
+            }
+        }
+
+        function handleFire(e) {
+            if (e.type !== 'mousemove') e.preventDefault();
+            if (gameState === 'PLAYING' && player) {
+                player.fire();
+            }
+        }
+
+        canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('touchmove', handleMove, {passive: false});
+        canvas.addEventListener('mousedown', handleFire);
+        canvas.addEventListener('touchstart', handleFire, {passive: false});
+
+        class Player {
+            constructor() {
+                this.width = 50;
+                this.height = 50;
+                this.x = GAME_WIDTH / 2 - this.width / 2;
+                this.y = GAME_HEIGHT - this.height - 30;
+                this.color = '#63b3ed'; 
+            }
+
+            update() {
+                if (inputX !== null) {
+                    this.x = inputX - this.width / 2;
+                    // 邊界限制
+                    if (this.x < 0) this.x = 0;
+                    if (this.x + this.width > GAME_WIDTH) this.x = GAME_WIDTH - this.width;
+                }
+            }
+
+            draw(ctx) {
+                // 畫像素風飛船
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.moveTo(this.x + this.width / 2, this.y); 
+                ctx.lineTo(this.x + this.width, this.y + this.height); 
+                ctx.lineTo(this.x + this.width / 2, this.y + this.height - 15); 
+                ctx.lineTo(this.x, this.y + this.height); 
+                ctx.closePath();
+                ctx.fill();
+
+                // 引擎火焰
+                if (Math.random() > 0.3) {
+                    ctx.fillStyle = '#ecc94b';
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + this.width / 2 - 8, this.y + this.height - 10);
+                    ctx.lineTo(this.x + this.width / 2 + 8, this.y + this.height - 10);
+                    ctx.lineTo(this.x + this.width / 2, this.y + this.height + 10 + Math.random() * 15);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+
+            fire() {
+                bullets.push(new Bullet(this.x + this.width / 2, this.y));
+                SoundFX.shoot();
+            }
+        }
+
+        class Enemy {
+            constructor(x, y, word, speed) {
+                this.x = x;
+                this.y = y;
+                this.word = word;
+                this.width = 50; // 微調讓像素風更明顯
+                this.height = 40;
+                this.speed = speed;
+                this.type = Math.floor(Math.random() * alienShapes.length);
+                this.color = alienColors[Math.floor(Math.random() * alienColors.length)];
+                this.wingAnim = 0;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.wingAnim += 0.1;
+            }
+
+            draw(ctx) {
+                const shape = alienShapes[this.type];
+                const rows = shape.length;
+                const cols = shape[0].length;
+                const pxW = this.width / cols;
+                const pxH = this.height / rows;
+
+                ctx.fillStyle = this.color;
+                
+                // 簡單動畫：根據 wingAnim 決定是否繪製特定的像素來達成拍打感
+                const animateFrame = Math.sin(this.wingAnim) > 0;
+
+                for(let r=0; r<rows; r++) {
+                    for(let c=0; c<cols; c++) {
+                        if(shape[r][c]) {
+                            // 動畫微調：對最下面兩排根據動畫隱藏，產生爬行/拍打的效果
+                            if(r >= rows - 2 && animateFrame && c % 2 === 0) continue;
+                            
+                            // 加上 0.5 確保畫素間不會有黑線縫隙
+                            ctx.fillRect(this.x + c * pxW, this.y + r * pxH, pxW + 0.5, pxH + 0.5); 
+                        }
+                    }
+                }
+
+                // 畫文字 (稍微浮在外星人頭上)
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 20px "Noto Sans TC", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                // 加上黑邊讓文字更清楚
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 3;
+                ctx.strokeText(this.word, this.x + this.width / 2, this.y - 15);
+                ctx.fillText(this.word, this.x + this.width / 2, this.y - 15);
+            }
+        }
+
+        class Bullet {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 4;
+                this.speed = 10;
+                this.color = '#f6e05e';
+            }
+            update() { this.y -= this.speed; }
+            draw(ctx) {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        class HealthItem {
+            constructor(x, y) {
+                this.width = 30;
+                this.height = 30;
+                this.x = x;
+                this.y = y;
+                this.speed = 1.5;
+            }
+            update() { this.y += this.speed; }
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                let scale = 1 + Math.sin(Date.now() / 200) * 0.15;
+                ctx.scale(scale, scale);
+                
+                ctx.fillStyle = '#48bb78'; 
+                ctx.fillRect(-15, -15, 30, 30);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(-10, -3, 20, 6);
+                ctx.fillRect(-3, -10, 6, 20);
+                ctx.restore();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color, speedMulti = 1) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = Math.random() * 4 + 2;
+                this.speedX = (Math.random() - 0.5) * 8 * speedMulti;
+                this.speedY = (Math.random() - 0.5) * 8 * speedMulti;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.02 + 0.01;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.speedY += 0.1; // 加入重力效果，讓粒子像煙火一樣下墜
+                this.life -= this.decay;
+            }
+            draw(ctx) {
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function initStars() {
+            stars = [];
+            for(let i=0; i<100; i++) {
+                stars.push({
+                    x: Math.random() * GAME_WIDTH,
+                    y: Math.random() * GAME_HEIGHT,
+                    size: Math.random() * 2,
+                    speed: Math.random() * 0.5 + 0.1
+                });
+            }
+        }
+
+        function drawBackground() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            ctx.fillStyle = 'white';
+            stars.forEach(s => {
+                s.y += s.speed;
+                if(s.y > GAME_HEIGHT) { s.y = 0; s.x = Math.random() * GAME_WIDTH; }
+                ctx.fillRect(s.x, s.y, s.size, s.size);
+            });
+        }
+
+        function createExplosion(x, y, color, amount = 20, speedMulti = 1) {
+            for (let i = 0; i < amount; i++) particles.push(new Particle(x, y, color, speedMulti));
+        }
+
+        // 過關專用的煙火動畫迴圈
+        function winLoop() {
+            if (gameState !== 'GAMEOVER') return;
+
+            // 製造拖影效果
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            // 隨機在畫面中上部施放巨大煙火
+            if (Math.random() < 0.1) {
+                const x = Math.random() * GAME_WIDTH;
+                const y = Math.random() * GAME_HEIGHT * 0.6;
+                const colors = ['#f56565', '#48bb78', '#4299e1', '#ecc94b', '#f687b3', '#9f7aea', '#ed8936'];
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                createExplosion(x, y, randomColor, 50, 2); // 產生50個粒子，散開速度加倍
+            }
+
+            // 更新與繪製爆炸粒子
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw(ctx);
+                if (particles[i].life <= 0) particles.splice(i, 1);
+            }
+
+            winAnimId = requestAnimationFrame(winLoop);
+        }
+
+        function updateLivesDisplay() {
+            let hearts = '';
+            for(let i=0; i<lives; i++) hearts += '❤️';
+            document.getElementById('lives-display').textContent = hearts;
+            if (lives <= 0 && gameState === 'PLAYING') endGame(false);
+        }
+
+        function speakWord(word) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'zh-TW';
+                utterance.rate = 0.85;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // 產生新的一波生詞蜜蜂
+        function spawnWave() {
+            if (gameState !== 'PLAYING') return;
+            
+            // 檢查是否過關
+            if (remainingVocabList.length === 0) {
+                endGame(true);
+                return;
+            }
+
+            // 隨機挑選最多 3 個詞
+            let wordsToSpawn = [];
+            let tempArray = [...remainingVocabList];
+            tempArray.sort(() => Math.random() - 0.5);
+            
+            const count = Math.min(3, tempArray.length);
+            for (let i = 0; i < count; i++) {
+                wordsToSpawn.push(tempArray[i]);
+            }
+
+            // 決定這波的目標
+            const targetIndex = Math.floor(Math.random() * wordsToSpawn.length);
+            const targetWordStr = wordsToSpawn[targetIndex];
+            
+            currentTargetWord = targetWordStr;
+            const dictInfo = dict[targetWordStr];
+            
+            // 更新 UI
+            document.getElementById('target-word').textContent = `${dictInfo.pinyin} / ${dictInfo.en}`;
+            document.getElementById('target-display').classList.remove('hidden');
+            
+            // 語音提示
+            speakWord(targetWordStr);
+
+            // 產生敵人
+            const spacing = GAME_WIDTH / (count + 1);
+            enemies = [];
+            for (let i = 0; i < count; i++) {
+                const x = spacing * (i + 1) - 25; // 減去寬度的一半使其居中
+                const y = -60 - Math.random() * 50; 
+                const speed = baseSpeed + (level * 0.2) + Math.random() * 0.5;
+                enemies.push(new Enemy(x, y, wordsToSpawn[i], speed));
+            }
+
+            // 殘血時有 40% 機率掉落醫療包
+            if (lives === 1 && Math.random() < 0.4) {
+                const hx = Math.random() * (GAME_WIDTH - 50) + 25;
+                items.push(new HealthItem(hx, -100));
+            }
+        }
+
+        // 處理所有碰撞邏輯
+        function checkCollisions() {
+            // 1. 子彈與敵人的碰撞
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let hit = false;
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const b = bullets[i];
+                    const e = enemies[j];
+                    
+                    // 簡單矩形碰撞
+                    if (b.x > e.x && b.x < e.x + e.width &&
+                        b.y > e.y && b.y < e.y + e.height) {
+                        
+                        hit = true;
+                        
+                        if (e.word === currentTargetWord) {
+                            // 答對了！
+                            createExplosion(e.x + e.width/2, e.y + e.height/2, '#ecc94b');
+                            SoundFX.hitTarget();
+                            score += 10;
+                            
+                            // 答對後從剩餘生詞清單中移除
+                            remainingVocabList = remainingVocabList.filter(w => w !== currentTargetWord);
+                            document.getElementById('score-display').textContent = score;
+                            document.getElementById('progress-display').textContent = remainingVocabList.length;
+                            
+                            // 清空這波敵人，進入下一題
+                            enemies = [];
+                            currentTargetWord = null;
+                            document.getElementById('target-display').classList.add('hidden');
+                            
+                            // 累積過關積分以提升難度
+                            if (score > 0 && score % 100 === 0) {
+                                level++;
+                                baseSpeed += 0.2;
+                            }
+                        } else {
+                            // 答錯了！
+                            createExplosion(e.x + e.width/2, e.y + e.height/2, '#f56565');
+                            SoundFX.hitWrong();
+                            score = Math.max(0, score - 5);
+                            lives--;
+                            document.getElementById('score-display').textContent = score;
+                            updateLivesDisplay();
+                            enemies.splice(j, 1); // 移除答錯的蜜蜂
+                        }
+                        break;
+                    }
+                }
+                if (hit) bullets.splice(i, 1); // 子彈命中後消失
+            }
+
+            // 2. 玩家與醫療包的碰撞 (補血)
+            for (let i = items.length - 1; i >= 0; i--) {
+                const item = items[i];
+                if (player && 
+                    player.x < item.x + item.width &&
+                    player.x + player.width > item.x &&
+                    player.y < item.y + item.height &&
+                    player.y + player.height > item.y) {
+                    
+                    lives = Math.min(3, lives + 1);
+                    updateLivesDisplay();
+                    SoundFX.heal();
+                    createExplosion(item.x + item.width/2, item.y + item.height/2, '#48bb78');
+                    items.splice(i, 1);
+                }
+            }
+
+            // 3. 敵人漏接 (掉落到底部防線)
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                if (player && e.y + e.height > player.y + 10) {
+                    if (e.word === currentTargetWord) {
+                        // 漏掉了「正確的答案」
+                        SoundFX.hitWrong();
+                        lives--;
+                        updateLivesDisplay();
+                        createExplosion(e.x + e.width/2, e.y + e.height/2, '#f56565');
+                        
+                        // 雖然漏掉但不用從陣列移除，下次還會出現。直接清空這波。
+                        enemies = [];
+                        currentTargetWord = null;
+                        document.getElementById('target-display').classList.add('hidden');
+                    } else {
+                        // 漏掉的是錯的答案，直接讓它消失就好，不扣血
+                        enemies.splice(i, 1);
+                    }
+                }
+            }
+        }
+
+        // 遊戲主迴圈
+        function gameLoop(timestamp) {
+            if (gameState !== 'PLAYING') return;
+
+            // 畫背景與星星
+            drawBackground();
+
+            // 檢查是否需要產生新的一波敵人
+            if (currentTargetWord === null) {
+                if (timestamp - lastSpawnTime > 1000) {
+                    spawnWave();
+                    lastSpawnTime = timestamp;
+                }
+            } else {
+                lastSpawnTime = timestamp; // 畫面上有敵人時重置計時器
+            }
+
+            // 更新與繪製玩家
+            if (player) {
+                player.update();
+                player.draw(ctx);
+            }
+
+            // 更新與繪製醫療包
+            for (let i = items.length - 1; i >= 0; i--) {
+                items[i].update();
+                items[i].draw(ctx);
+                if (items[i].y > GAME_HEIGHT) items.splice(i, 1); // 掉出畫面
+            }
+
+            // 更新與繪製敵人
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                enemies[i].update();
+                enemies[i].draw(ctx);
+            }
+
+            // 更新與繪製子彈
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].update();
+                bullets[i].draw(ctx);
+                if (bullets[i].y < 0) bullets.splice(i, 1); // 飛出畫面
+            }
+
+            // 更新與繪製爆炸粒子
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw(ctx);
+                if (particles[i].life <= 0) particles.splice(i, 1); // 粒子生命週期結束
+            }
+
+            // 執行碰撞偵測
+            checkCollisions();
+
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        async function startGame() {
+            await SoundFX.init(); // 確保音效庫被正確啟動
+            cancelAnimationFrame(winAnimId); // 清除可能殘留的煙火特效
+            
+            const val = document.getElementById('lesson-select').value;
+            let rawList = [];
+            
+            if (val === 'all') {
+                for (let k in rawVocabData) {
+                    rawList = rawList.concat(rawVocabData[k].filter(w => w && dict[w]));
+                }
+            } else {
+                rawList = rawVocabData[val].filter(w => w && dict[w]);
+            }
+
+            if (rawList.length === 0) {
+                alert(i18n[currentLang].alertVocab);
+                return;
+            }
+
+            remainingVocabList = [...new Set(rawList)];
+            
+            score = 0;
+            lives = 3;
+            baseSpeed = 1.0;
+            enemies = [];
+            bullets = [];
+            particles = [];
+            items = [];
+            currentTargetWord = null;
+            
+            resizeCanvas();
+            player = new Player();
+
+            document.getElementById('score-display').textContent = score;
+            document.getElementById('progress-display').textContent = remainingVocabList.length;
+            updateLivesDisplay();
+
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('pause-btn').classList.remove('hidden');
+            
+            gameState = 'PLAYING';
+            requestAnimationFrame(gameLoop);
+        }
+
+        function endGame(isWin) {
+            gameState = 'GAMEOVER';
+            cancelAnimationFrame(animationId);
+            cancelAnimationFrame(winAnimId);
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('target-display').classList.add('hidden');
+            document.getElementById('pause-btn').classList.add('hidden');
+            
+            const gameOverScreen = document.getElementById('game-over-screen');
+            gameOverScreen.classList.remove('hidden');
+
+            const titleEl = document.getElementById('end-title');
+            if (isWin) {
+                SoundFX.win();
+                titleEl.textContent = i18n[currentLang].winTitle;
+                // 加入 font-pixel 類別，並微調大小以適應像素字體的寬度
+                titleEl.className = "text-2xl md:text-4xl mb-6 font-bold drop-shadow-md text-win-anim font-pixel";
+                document.getElementById('continue-btn').classList.add('hidden');
+                document.getElementById('restart-btn').classList.remove('hidden');
+                
+                // 讓背景變透明以顯示煙火
+                gameOverScreen.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+                
+                // 啟動過關煙火特效
+                particles = [];
+                requestAnimationFrame(winLoop);
+            } else {
+                SoundFX.lose();
+                titleEl.textContent = i18n[currentLang].loseTitle;
+                // GAME OVER 也套用像素字體
+                titleEl.className = "text-3xl md:text-5xl mb-6 font-bold drop-shadow-md text-lose font-pixel";
+                document.getElementById('continue-btn').classList.remove('hidden');
+                document.getElementById('restart-btn').classList.add('hidden');
+                
+                // 恢復黑暗背景
+                gameOverScreen.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+            }
+
+            document.getElementById('final-score').textContent = score;
+        }
+
+        document.getElementById('start-btn').addEventListener('click', startGame);
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            cancelAnimationFrame(winAnimId); // 關閉煙火特效
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+        });
+
+        document.getElementById('continue-btn').addEventListener('click', async () => {
+            await SoundFX.init(); // 確保音效庫被正確啟動
+            
+            lives = 3;
+            updateLivesDisplay();
+            enemies = [];
+            bullets = [];
+            particles = [];
+            items = [];
+            currentTargetWord = null;
+            
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('pause-btn').classList.remove('hidden');
+            
+            player = new Player();
+            gameState = 'PLAYING';
+            spawnWave();
+            requestAnimationFrame(gameLoop);
+        });
+
+        document.getElementById('speak-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentTargetWord) speakWord(currentTargetWord);
+        });
+
+        // 暫停相關按鈕事件
+        document.getElementById('pause-btn').addEventListener('click', () => {
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                cancelAnimationFrame(animationId);
+                document.getElementById('pause-screen').classList.remove('hidden');
+                document.getElementById('pause-btn').classList.add('hidden');
+                document.getElementById('target-display').classList.add('hidden'); // 隱藏題目框避免阻擋視線
+            }
+        });
+
+        document.getElementById('resume-btn').addEventListener('click', () => {
+            if (gameState === 'PAUSED') {
+                gameState = 'PLAYING';
+                document.getElementById('pause-screen').classList.add('hidden');
+                document.getElementById('pause-btn').classList.remove('hidden');
+                if (currentTargetWord) {
+                    document.getElementById('target-display').classList.remove('hidden');
+                }
+                requestAnimationFrame(gameLoop);
+            }
+        });
+
+        document.getElementById('quit-btn').addEventListener('click', () => {
+            gameState = 'MENU';
+            cancelAnimationFrame(animationId);
+            cancelAnimationFrame(winAnimId); // 關閉煙火特效
+            document.getElementById('pause-screen').classList.add('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        });
+
+        // 初始化
+        initSelectOptions();
+        updateLanguage();
+        resizeCanvas();
+        drawBackground(); // 初始背景
+    </script>
+</body>
+</html>
