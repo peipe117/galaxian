@@ -89,6 +89,17 @@
             transform: translateY(6px);
             box-shadow: 0 0 0 #2b6cb0;
         }
+        
+        .pixel-btn-secondary {
+            background-color: #4a5568;
+            border-color: #718096;
+            box-shadow: 0 6px 0 #2d3748;
+        }
+        
+        .pixel-btn-secondary:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 #2d3748;
+        }
 
         select {
             font-family: 'Noto Sans TC', sans-serif;
@@ -98,9 +109,9 @@
             background-color: #2d3748;
             color: white;
             border: 2px solid #4a5568;
-            margin-bottom: 20px;
             outline: none;
-            max-width: 90%;
+            max-width: 100%;
+            width: 100%;
         }
 
         #hud {
@@ -186,6 +197,24 @@
             cursor: pointer;
             z-index: 20;
         }
+
+        /* Toast notification for link copied */
+        #toast {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #48bb78;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .show-toast { opacity: 1 !important; }
     </style>
 </head>
 <body>
@@ -222,9 +251,12 @@
                     <span class="text-yellow-400 text-sm">打錯扣血扣分！全對過關！</span>
                 </p>
 
-                <select id="lesson-select">
-                    <!-- Options populated by JS -->
-                </select>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4 w-full max-w-sm px-4">
+                    <select id="lesson-select" class="flex-grow">
+                        <!-- Options populated by JS -->
+                    </select>
+                    <button id="copy-link-btn" class="pixel-btn pixel-btn-secondary" style="margin-top: 0; padding: 10px 15px; font-size: 1rem;" title="複製課程連結">🔗 複製連結</button>
+                </div>
                 
                 <button id="start-btn" class="pixel-btn">START MISSION</button>
             </div>
@@ -247,6 +279,8 @@
                     <button id="quit-btn" class="pixel-btn" style="background-color: #e53e3e; border-color: #c53030; box-shadow: 0 6px 0 #9b2c2c;">回主選單</button>
                 </div>
             </div>
+            
+            <div id="toast">✅ 連結已複製！</div>
         </div>
     </div>
 
@@ -268,6 +302,8 @@
                 loseTitle: "GAME OVER",
                 continueBtn: "續關",
                 menuBtn: "回主選單",
+                copyLinkBtn: "🔗 複製連結",
+                copiedMsg: "✅ 連結已複製！",
                 lessons: {
                     all: "所有課程 (混合挑戰)",
                     L01: "第一課：新同學",
@@ -300,6 +336,8 @@
                 loseTitle: "GAME OVER",
                 continueBtn: "CONTINUE",
                 menuBtn: "MAIN MENU",
+                copyLinkBtn: "🔗 Copy Link",
+                copiedMsg: "✅ Link Copied!",
                 lessons: {
                     all: "All Lessons (Mixed Challenge)",
                     L01: "Lesson 1: New Classmate",
@@ -348,7 +386,6 @@
             "啊": { pinyin: "a", en: "ah" }, "過來": { pinyin: "guò lái", en: "come over" }, "很久": { pinyin: "hěn jiǔ", en: "long time" }, "好好": { pinyin: "hǎo hǎo", en: "well" }, "看起來": { pinyin: "kàn qǐ lái", en: "looks like" }, "沒問題": { pinyin: "méi wèn tí", en: "no problem" }, "上課": { pinyin: "shàng kè", en: "attend class" }, "說話": { pinyin: "shuō huà", en: "speak" }, "瘦": { pinyin: "shòu", en: "thin" }, "網路": { pinyin: "wǎng lù", en: "internet" }, "寫": { pinyin: "xiě", en: "write" }, "信": { pinyin: "xìn", en: "letter" }, "有意思": { pinyin: "yǒu yì si", en: "interesting" }, "一定": { pinyin: "yí dìng", en: "certainly" }, "影像": { pinyin: "yǐng xiàng", en: "image" }, "長高": { pinyin: "zhǎng gāo", en: "grow taller" }
         };
 
-        // --- 音效系統 (使用 Tone.js) ---
         const SoundFX = {
             synth: null,
             noise: null,
@@ -514,6 +551,8 @@
             document.getElementById('label-final-score').textContent = langData.finalScore;
             document.getElementById('continue-btn').textContent = langData.continueBtn;
             document.getElementById('restart-btn').textContent = langData.menuBtn;
+            document.getElementById('copy-link-btn').textContent = langData.copyLinkBtn;
+            document.getElementById('toast').textContent = langData.copiedMsg;
 
             const select = document.getElementById('lesson-select');
             const currentVal = select.value;
@@ -526,6 +565,28 @@
         document.getElementById('lang-toggle').addEventListener('click', () => {
             currentLang = currentLang === 'zh' ? 'en' : 'zh';
             updateLanguage();
+        });
+
+        // 複製課程連結功能
+        document.getElementById('copy-link-btn').addEventListener('click', function() {
+            const selectedLesson = document.getElementById('lesson-select').value;
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('lesson', selectedLesson);
+            
+            // 由於 iFrame 限制，使用 execCommand 作為安全備案
+            const tempInput = document.createElement("input");
+            tempInput.value = currentUrl.href;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            
+            // 顯示 Toast 提示
+            const toast = document.getElementById('toast');
+            toast.classList.add('show-toast');
+            setTimeout(() => {
+                toast.classList.remove('show-toast');
+            }, 2000);
         });
 
         function resizeCanvas() {
@@ -1163,6 +1224,18 @@
 
         // 初始化
         initSelectOptions();
+        
+        // 檢查網址是否有 lesson 參數 (e.g. ?lesson=L01)
+        const urlParams = new URLSearchParams(window.location.search);
+        const lessonParam = urlParams.get('lesson');
+        if (lessonParam) {
+            const select = document.getElementById('lesson-select');
+            // 如果網址參數的課程在選單內存在，就自動選中
+            if (select.querySelector(`option[value="${lessonParam}"]`)) {
+                select.value = lessonParam;
+            }
+        }
+        
         updateLanguage();
         resizeCanvas();
         drawBackground(); // 初始背景
