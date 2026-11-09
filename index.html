@@ -89,17 +89,6 @@
             transform: translateY(6px);
             box-shadow: 0 0 0 #2b6cb0;
         }
-        
-        .pixel-btn-secondary {
-            background-color: #4a5568;
-            border-color: #718096;
-            box-shadow: 0 6px 0 #2d3748;
-        }
-        
-        .pixel-btn-secondary:active {
-            transform: translateY(6px);
-            box-shadow: 0 0 0 #2d3748;
-        }
 
         select {
             font-family: 'Noto Sans TC', sans-serif;
@@ -109,9 +98,9 @@
             background-color: #2d3748;
             color: white;
             border: 2px solid #4a5568;
+            margin-bottom: 20px;
             outline: none;
-            max-width: 100%;
-            width: 100%;
+            max-width: 90%;
         }
 
         #hud {
@@ -148,6 +137,9 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            width: 90%;
+            max-width: 400px;
+            justify-content: center;
         }
 
         #speak-btn {
@@ -158,6 +150,7 @@
             padding: 0;
             filter: drop-shadow(1px 1px 2px black);
             transition: transform 0.1s;
+            flex-shrink: 0;
         }
         
         #speak-btn:active {
@@ -197,24 +190,6 @@
             cursor: pointer;
             z-index: 20;
         }
-
-        /* Toast notification for link copied */
-        #toast {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #48bb78;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: bold;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-            z-index: 100;
-        }
-        .show-toast { opacity: 1 !important; }
     </style>
 </head>
 <body>
@@ -235,9 +210,9 @@
             </div>
 
             <div id="target-display" class="hidden">
-                <div>
+                <div style="flex-grow: 1;">
                     <div class="text-sm text-gray-300" id="label-hint">擊落對應生詞：</div>
-                    <div id="target-word" class="text-2xl font-bold text-yellow-400">Pinyin / English</div>
+                    <div id="target-word" class="text-lg md:text-xl font-bold text-yellow-400 leading-tight">Zhuyin / Pinyin / English</div>
                 </div>
                 <button id="speak-btn" title="朗讀">🔊</button>
             </div>
@@ -251,12 +226,9 @@
                     <span class="text-yellow-400 text-sm">打錯扣血扣分！全對過關！</span>
                 </p>
 
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4 w-full max-w-sm px-4">
-                    <select id="lesson-select" class="flex-grow">
-                        <!-- Options populated by JS -->
-                    </select>
-                    <button id="copy-link-btn" class="pixel-btn pixel-btn-secondary" style="margin-top: 0; padding: 10px 15px; font-size: 1rem;" title="複製課程連結">🔗 複製連結</button>
-                </div>
+                <select id="lesson-select">
+                    <!-- Options populated by JS -->
+                </select>
                 
                 <button id="start-btn" class="pixel-btn">START MISSION</button>
             </div>
@@ -279,8 +251,6 @@
                     <button id="quit-btn" class="pixel-btn" style="background-color: #e53e3e; border-color: #c53030; box-shadow: 0 6px 0 #9b2c2c;">回主選單</button>
                 </div>
             </div>
-            
-            <div id="toast">✅ 連結已複製！</div>
         </div>
     </div>
 
@@ -302,8 +272,6 @@
                 loseTitle: "GAME OVER",
                 continueBtn: "續關",
                 menuBtn: "回主選單",
-                copyLinkBtn: "🔗 複製連結",
-                copiedMsg: "✅ 連結已複製！",
                 lessons: {
                     all: "所有課程 (混合挑戰)",
                     L01: "第一課：新同學",
@@ -336,8 +304,6 @@
                 loseTitle: "GAME OVER",
                 continueBtn: "CONTINUE",
                 menuBtn: "MAIN MENU",
-                copyLinkBtn: "🔗 Copy Link",
-                copiedMsg: "✅ Link Copied!",
                 lessons: {
                     all: "All Lessons (Mixed Challenge)",
                     L01: "Lesson 1: New Classmate",
@@ -372,20 +338,21 @@
         };
 
         const dict = {
-            "比較": { pinyin: "bǐ jiào", en: "to compare" }, "大家": { pinyin: "dà jiā", en: "everyone" }, "方友朋": { pinyin: "Fāng Yǒupéng", en: "Fang Youpeng" }, "高興": { pinyin: "gāo xìng", en: "happy" }, "跟": { pinyin: "gēn", en: "with" }, "歡迎": { pinyin: "huān yíng", en: "welcome" }, "今年": { pinyin: "jīn nián", en: "this year" }, "介紹": { pinyin: "jiè shào", en: "to introduce" }, "自己": { pinyin: "zì jǐ", en: "oneself" }, "看書": { pinyin: "kàn shū", en: "read book" }, "認識": { pinyin: "rèn shi", en: "to know" }, "現在": { pinyin: "xiàn zài", en: "now" }, "新": { pinyin: "xīn", en: "new" }, "學": { pinyin: "xué", en: "to learn" }, "游泳": { pinyin: "yóu yǒng", en: "swim" }, "最": { pinyin: "zuì", en: "most" }, "華語": { pinyin: "Huá yǔ", en: "Chinese" }, "張莉": { pinyin: "Zhāng Lì", en: "Zhang Li" },
-            "幫": { pinyin: "bāng", en: "to help" }, "電腦公司": { pinyin: "diàn nǎo", en: "computer company" }, "工作": { pinyin: "gōng zuò", en: "work" }, "上班": { pinyin: "shàng bān", en: "go to work" }, "外公": { pinyin: "wài gōng", en: "grandfather" }, "外婆": { pinyin: "wài pó", en: "grandmother" }, "一樣": { pinyin: "yí yàng", en: "same" }, "以前": { pinyin: "yǐ qián", en: "before" }, "銀行": { pinyin: "yín háng", en: "bank" }, "醫生": { pinyin: "yī shēng", en: "doctor" }, "做生意": { pinyin: "zuò shēng yì", en: "do business" }, "以後": { pinyin: "yǐ hòu", en: "after" },
-            "冰淇淋": { pinyin: "bīng qí lín", en: "ice cream" }, "超級市場": { pinyin: "chāo jí", en: "supermarket" }, "東西": { pinyin: "dōng xi", en: "thing" }, "附近": { pinyin: "fù jìn", en: "nearby" }, "可以": { pinyin: "kě yǐ", en: "can" }, "米": { pinyin: "mǐ", en: "rice" }, "買": { pinyin: "mǎi", en: "to buy" }, "牛肉": { pinyin: "niú ròu", en: "beef" }, "巧克力": { pinyin: "qiǎo kè lì", en: "chocolate" }, "青菜": { pinyin: "qīng cài", en: "vegetables" }, "糖果": { pinyin: "táng guǒ", en: "candy" }, "要": { pinyin: "yào", en: "to want" }, "魚": { pinyin: "yú", en: "fish" },
-            "出去": { pinyin: "chū qù", en: "go out" }, "蛋炒飯": { pinyin: "dàn chǎo fàn", en: "fried rice" }, "餓": { pinyin: "è", en: "hungry" }, "漢堡": { pinyin: "hàn bǎo", en: "hamburger" }, "快點": { pinyin: "kuài diǎn", en: "hurry up" }, "了": { pinyin: "le", en: "(particle)" }, "麵": { pinyin: "miàn", en: "noodles" }, "薯條": { pinyin: "shǔ tiáo", en: "french fries" }, "湯": { pinyin: "tāng", en: "soup" }, "晚餐": { pinyin: "wǎn cān", en: "dinner" }, "晚飯": { pinyin: "wǎn fàn", en: "dinner" }, "先": { pinyin: "xiān", en: "first" }, "已經": { pinyin: "yǐ jīng", en: "already" }, "玉米": { pinyin: "yù mǐ", en: "corn" }, "再": { pinyin: "zài", en: "again" }, "週末": { pinyin: "zhōu mò", en: "weekend" },
-            "變": { pinyin: "biàn", en: "to change" }, "不錯": { pinyin: "bú cuò", en: "not bad" }, "白色": { pinyin: "bái sè", en: "white" }, "春天": { pinyin: "chūn tiān", en: "spring" }, "草": { pinyin: "cǎo", en: "grass" }, "紅色": { pinyin: "hóng sè", en: "red" }, "黃": { pinyin: "huáng", en: "yellow" }, "還是": { pinyin: "hái shì", en: "or/still" }, "花": { pinyin: "huā", en: "flower" }, "綠色": { pinyin: "lǜ sè", en: "green" }, "漂亮": { pinyin: "piào liàng", en: "beautiful" }, "秋天": { pinyin: "qiū tiān", en: "autumn" }, "時候": { pinyin: "shí hòu", en: "time" }, "樹葉": { pinyin: "shù yè", en: "leaves" }, "天氣": { pinyin: "tiān qì", en: "weather" }, "院子": { pinyin: "yuàn zi", en: "yard" }, "顏色": { pinyin: "yán sè", en: "color" }, "舒服": { pinyin: "shū fú", en: "comfortable" },
-            "拜年": { pinyin: "bài nián", en: "New Year greeting" }, "放鞭炮": { pinyin: "fàng biān", en: "firecrackers" }, "給": { pinyin: "gěi", en: "to give" }, "紅包": { pinyin: "hóng bāo", en: "red envelope" }, "會": { pinyin: "huì", en: "will/can" }, "每": { pinyin: "měi", en: "every" }, "那天": { pinyin: "nà tiān", en: "that day" }, "年糕": { pinyin: "nián gāo", en: "rice cake" }, "如果": { pinyin: "rú guǒ", en: "if" }, "說": { pinyin: "shuō", en: "to say" }, "台灣": { pinyin: "Tái wān", en: "Taiwan" }, "貼春聯": { pinyin: "tiē chūn", en: "spring couplets" }, "新年": { pinyin: "xīn nián", en: "New Year" }, "下": { pinyin: "xià", en: "under/next" }, "星期": { pinyin: "xīng qī", en: "week" }, "華人": { pinyin: "Huá rén", en: "Chinese" }, "農曆": { pinyin: "nóng lì", en: "lunar calendar" },
-            "別": { pinyin: "bié", en: "don't" }, "肥皂": { pinyin: "féi zào", en: "soap" }, "乾淨": { pinyin: "gān jìng", en: "clean" }, "該": { pinyin: "gāi", en: "should" }, "過": { pinyin: "guò", en: "to pass" }, "趕快": { pinyin: "gǎn kuài", en: "hurry up" }, "來不及": { pinyin: "lái bù jí", en: "too late" }, "累": { pinyin: "lèi", en: "tired" }, "起床": { pinyin: "qǐ chuáng", en: "get up" }, "刷牙": { pinyin: "shuā yá", en: "brush teeth" }, "睡覺": { pinyin: "shuì jiào", en: "to sleep" }, "晚上": { pinyin: "wǎn shang", en: "evening" }, "忘": { pinyin: "wàng", en: "forget" }, "洗": { pinyin: "xǐ", en: "to wash" }, "洗澡": { pinyin: "xǐ zǎo", en: "take a bath" }, "洗臉": { pinyin: "xǐ liǎn", en: "wash face" }, "用": { pinyin: "yòng", en: "to use" }, "知道": { pinyin: "zhī dào", en: "to know" }, "昨天": { pinyin: "zuó tiān", en: "yesterday" },
-            "不見了": { pinyin: "bú jiàn", en: "disappeared" }, "寵物": { pinyin: "chǒng wù", en: "pet" }, "帶": { pinyin: "dài", en: "to bring" }, "非常": { pinyin: "fēi cháng", en: "very" }, "狗": { pinyin: "gǒu", en: "dog" }, "可愛": { pinyin: "kě ài", en: "cute" }, "貓": { pinyin: "māo", en: "cat" }, "去年": { pinyin: "qù nián", en: "last year" }, "送給": { pinyin: "sòng gěi", en: "give to" }, "上個月": { pinyin: "shàng ge", en: "last month" }, "牠們": { pinyin: "tā men", en: "they (animals)" }, "兔子": { pinyin: "tù zi", en: "rabbit" }, "餵": { pinyin: "wèi", en: "to feed" }, "養": { pinyin: "yǎng", en: "to raise" }, "隻": { pinyin: "zhī", en: "(measure word)" }, "散步": { pinyin: "sàn bù", en: "take a walk" },
-            "北方": { pinyin: "běi fāng", en: "north" }, "東方": { pinyin: "dōng fāng", en: "east" }, "方向": { pinyin: "fāng xiàng", en: "direction" }, "告訴": { pinyin: "gào sù", en: "to tell" }, "教室": { pinyin: "jiào shì", en: "classroom" }, "南方": { pinyin: "nán fāng", en: "south" }, "所以": { pinyin: "suǒ yǐ", en: "so" }, "它": { pinyin: "tā", en: "it" }, "校門口": { pinyin: "xiào mén", en: "school gate" }, "西方": { pinyin: "xī fāng", en: "west" }, "因為": { pinyin: "yīn wèi", en: "because" }, "足球場": { pinyin: "zú qiú", en: "football field" }, "指北針": { pinyin: "zhǐ běi", en: "compass" }, "指南針": { pinyin: "zhǐ nán", en: "compass" },
-            "本來": { pinyin: "běn lái", en: "originally" }, "法國": { pinyin: "Fǎ guó", en: "France" }, "舅舅": { pinyin: "jiù jiù", en: "uncle" }, "看": { pinyin: "kàn", en: "to see" }, "旅行": { pinyin: "lǚ xíng", en: "travel" }, "紐約": { pinyin: "Niǔ yuē", en: "New York" }, "臺北": { pinyin: "Tái běi", en: "Taipei" }, "臺南": { pinyin: "Tái nán", en: "Tainan" }, "退休": { pinyin: "tuì xiū", en: "retire" }, "一次": { pinyin: "yí cì", en: "once" }, "住在": { pinyin: "zhù zài", en: "live in" }, "暑假": { pinyin: "shǔ jià", en: "summer vacation" },
-            "不但": { pinyin: "bú dàn", en: "not only" }, "脖子": { pinyin: "bó zi", en: "neck" }, "長頸鹿": { pinyin: "cháng jǐng", en: "giraffe" }, "大象": { pinyin: "dà xiàng", en: "elephant" }, "動物園": { pinyin: "dòng wù", en: "zoo" }, "猴子": { pinyin: "hóu zi", en: "monkey" }, "看到": { pinyin: "kàn dào", en: "saw" }, "老虎": { pinyin: "lǎo hǔ", en: "tiger" }, "胖": { pinyin: "pàng", en: "fat" }, "企鵝": { pinyin: "qǐ é", en: "penguin" }, "玩": { pinyin: "wán", en: "to play" }, "熊貓": { pinyin: "xióng māo", en: "panda" }, "希望": { pinyin: "xī wàng", en: "to hope" }, "這一次": { pinyin: "zhè yí cì", en: "this time" }, "長": { pinyin: "cháng", en: "long" }, "真": { pinyin: "zhēn", en: "really" },
-            "啊": { pinyin: "a", en: "ah" }, "過來": { pinyin: "guò lái", en: "come over" }, "很久": { pinyin: "hěn jiǔ", en: "long time" }, "好好": { pinyin: "hǎo hǎo", en: "well" }, "看起來": { pinyin: "kàn qǐ lái", en: "looks like" }, "沒問題": { pinyin: "méi wèn tí", en: "no problem" }, "上課": { pinyin: "shàng kè", en: "attend class" }, "說話": { pinyin: "shuō huà", en: "speak" }, "瘦": { pinyin: "shòu", en: "thin" }, "網路": { pinyin: "wǎng lù", en: "internet" }, "寫": { pinyin: "xiě", en: "write" }, "信": { pinyin: "xìn", en: "letter" }, "有意思": { pinyin: "yǒu yì si", en: "interesting" }, "一定": { pinyin: "yí dìng", en: "certainly" }, "影像": { pinyin: "yǐng xiàng", en: "image" }, "長高": { pinyin: "zhǎng gāo", en: "grow taller" }
+            "比較": { zhuyin: "ㄅㄧˇ ㄐㄧㄠˋ", pinyin: "bǐ jiào", en: "to compare" }, "大家": { zhuyin: "ㄉㄚˋ ㄐㄧㄚ", pinyin: "dà jiā", en: "everyone" }, "方友朋": { zhuyin: "ㄈㄤ ㄧㄡˇ ㄆㄥˊ", pinyin: "Fāng Yǒupéng", en: "Fang Youpeng" }, "高興": { zhuyin: "ㄍㄠ ㄒㄧㄥˋ", pinyin: "gāo xìng", en: "happy" }, "跟": { zhuyin: "ㄍㄣ", pinyin: "gēn", en: "with" }, "歡迎": { zhuyin: "ㄏㄨㄢ ㄧㄥˊ", pinyin: "huān yíng", en: "welcome" }, "今年": { zhuyin: "ㄐㄧㄣ ㄋㄧㄢˊ", pinyin: "jīn nián", en: "this year" }, "介紹": { zhuyin: "ㄐㄧㄝˋ ㄕㄠˋ", pinyin: "jiè shào", en: "to introduce" }, "自己": { zhuyin: "ㄗˋ ㄐㄧˇ", pinyin: "zì jǐ", en: "oneself" }, "看書": { zhuyin: "ㄎㄢˋ ㄕㄨ", pinyin: "kàn shū", en: "read book" }, "認識": { zhuyin: "ㄖㄣˋ ㄕ˙", pinyin: "rèn shi", en: "to know" }, "現在": { zhuyin: "ㄒㄧㄢˋ ㄗㄞˋ", pinyin: "xiàn zài", en: "now" }, "新": { zhuyin: "ㄒㄧㄣ", pinyin: "xīn", en: "new" }, "學": { zhuyin: "ㄒㄩㄝˊ", pinyin: "xué", en: "to learn" }, "游泳": { zhuyin: "ㄧㄡˊ ㄩㄥˇ", pinyin: "yóu yǒng", en: "swim" }, "最": { zhuyin: "ㄗㄨㄟˋ", pinyin: "zuì", en: "most" }, "華語": { zhuyin: "ㄏㄨㄚˊ ㄩˇ", pinyin: "Huá yǔ", en: "Chinese" }, "張莉": { zhuyin: "ㄓㄤ ㄌㄧˋ", pinyin: "Zhāng Lì", en: "Zhang Li" },
+            "幫": { zhuyin: "ㄅㄤ", pinyin: "bāng", en: "to help" }, "電腦公司": { zhuyin: "ㄉㄧㄢˋ ㄋㄠˇ ㄍㄨㄥ ㄙ", pinyin: "diàn nǎo", en: "computer company" }, "工作": { zhuyin: "ㄍㄨㄥ ㄗㄨㄛˋ", pinyin: "gōng zuò", en: "work" }, "上班": { zhuyin: "ㄕㄤˋ ㄅㄢ", pinyin: "shàng bān", en: "go to work" }, "外公": { zhuyin: "ㄨㄞˋ ㄍㄨㄥ", pinyin: "wài gōng", en: "grandfather" }, "外婆": { zhuyin: "ㄨㄞˋ ㄆㄛˊ", pinyin: "wài pó", en: "grandmother" }, "一樣": { zhuyin: "ㄧˊ ㄧㄤˋ", pinyin: "yí yàng", en: "same" }, "以前": { zhuyin: "ㄧˇ ㄑㄧㄢˊ", pinyin: "yǐ qián", en: "before" }, "銀行": { zhuyin: "ㄧㄣˊ ㄏㄤˊ", pinyin: "yín háng", en: "bank" }, "醫生": { zhuyin: "ㄧ ㄕㄥ", pinyin: "yī shēng", en: "doctor" }, "做生意": { zhuyin: "ㄗㄨㄛˋ ㄕㄥ ㄧˋ", pinyin: "zuò shēng yì", en: "do business" }, "以後": { zhuyin: "ㄧˇ ㄏㄡˋ", pinyin: "yǐ hòu", en: "after" },
+            "冰淇淋": { zhuyin: "ㄅㄧㄥ ㄑㄧˊ ㄌㄧㄣˊ", pinyin: "bīng qí lín", en: "ice cream" }, "超級市場": { zhuyin: "ㄔㄠ ㄐㄧˊ ㄕˋ ㄔㄤˇ", pinyin: "chāo jí", en: "supermarket" }, "東西": { zhuyin: "ㄉㄨㄥ ㄒㄧ", pinyin: "dōng xi", en: "thing" }, "附近": { zhuyin: "ㄈㄨˋ ㄐㄧㄣˋ", pinyin: "fù jìn", en: "nearby" }, "可以": { zhuyin: "ㄎㄜˇ ㄧˇ", pinyin: "kě yǐ", en: "can" }, "米": { zhuyin: "ㄇㄧˇ", pinyin: "mǐ", en: "rice" }, "買": { zhuyin: "ㄇㄞˇ", pinyin: "mǎi", en: "to buy" }, "牛肉": { zhuyin: "ㄋㄧㄡˊ ㄖㄡˋ", pinyin: "niú ròu", en: "beef" }, "巧克力": { zhuyin: "ㄑㄧㄠˇ ㄎㄜˋ ㄌㄧˋ", pinyin: "qiǎo kè lì", en: "chocolate" }, "青菜": { zhuyin: "ㄑㄧㄥ ㄘㄞˋ", pinyin: "qīng cài", en: "vegetables" }, "糖果": { zhuyin: "ㄊㄤˊ ㄍㄨㄛˇ", pinyin: "táng guǒ", en: "candy" }, "要": { zhuyin: "ㄧㄠˋ", pinyin: "yào", en: "to want" }, "魚": { zhuyin: "ㄩˊ", pinyin: "yú", en: "fish" },
+            "出去": { zhuyin: "ㄔㄨ ㄑㄩˋ", pinyin: "chū qù", en: "go out" }, "蛋炒飯": { zhuyin: "ㄉㄢˋ ㄔㄠˇ ㄈㄢˋ", pinyin: "dàn chǎo fàn", en: "fried rice" }, "餓": { zhuyin: "ㄜˋ", pinyin: "è", en: "hungry" }, "漢堡": { zhuyin: "ㄏㄢˋ ㄅㄠˇ", pinyin: "hàn bǎo", en: "hamburger" }, "快點": { zhuyin: "ㄎㄨㄞˋ ㄉㄧㄢˇ", pinyin: "kuài diǎn", en: "hurry up" }, "了": { zhuyin: "ㄌㄜ˙", pinyin: "le", en: "(particle)" }, "麵": { zhuyin: "ㄇㄧㄢˋ", pinyin: "miàn", en: "noodles" }, "薯條": { zhuyin: "ㄕㄨˇ ㄊㄧㄠˊ", pinyin: "shǔ tiáo", en: "french fries" }, "湯": { zhuyin: "ㄊㄤ", pinyin: "tāng", en: "soup" }, "晚餐": { zhuyin: "ㄨㄢˇ ㄘㄢ", pinyin: "wǎn cān", en: "dinner" }, "晚飯": { zhuyin: "ㄨㄢˇ ㄈㄢˋ", pinyin: "wǎn fàn", en: "dinner" }, "先": { zhuyin: "ㄒㄧㄢ", pinyin: "xiān", en: "first" }, "已經": { zhuyin: "ㄧˇ ㄐㄧㄥ", pinyin: "yǐ jīng", en: "already" }, "玉米": { zhuyin: "ㄩˋ ㄇㄧˇ", pinyin: "yù mǐ", en: "corn" }, "再": { zhuyin: "ㄗㄞˋ", pinyin: "zài", en: "again" }, "週末": { zhuyin: "ㄓㄡ ㄇㄛˋ", pinyin: "zhōu mò", en: "weekend" },
+            "變": { zhuyin: "ㄅㄧㄢˋ", pinyin: "biàn", en: "to change" }, "不錯": { zhuyin: "ㄅㄨˊ ㄘㄨㄛˋ", pinyin: "bú cuò", en: "not bad" }, "白色": { zhuyin: "ㄅㄞˊ ㄙㄜˋ", pinyin: "bái sè", en: "white" }, "春天": { zhuyin: "ㄔㄨㄣ ㄊㄧㄢ", pinyin: "chūn tiān", en: "spring" }, "草": { zhuyin: "ㄘㄠˇ", pinyin: "cǎo", en: "grass" }, "紅色": { zhuyin: "ㄏㄨㄥˊ ㄙㄜˋ", pinyin: "hóng sè", en: "red" }, "黃": { zhuyin: "ㄏㄨㄤˊ", pinyin: "huáng", en: "yellow" }, "還是": { zhuyin: "ㄏㄞˊ ㄕˋ", pinyin: "hái shì", en: "or/still" }, "花": { zhuyin: "ㄏㄨㄚ", pinyin: "huā", en: "flower" }, "綠色": { zhuyin: "ㄌㄩˋ ㄙㄜˋ", pinyin: "lǜ sè", en: "green" }, "漂亮": { zhuyin: "ㄆㄧㄠˋ ㄌㄧㄤˋ", pinyin: "piào liàng", en: "beautiful" }, "秋天": { zhuyin: "ㄑㄧㄡ ㄊㄧㄢ", pinyin: "qiū tiān", en: "autumn" }, "時候": { zhuyin: "ㄕˊ ㄏㄡˋ", pinyin: "shí hòu", en: "time" }, "樹葉": { zhuyin: "ㄕㄨˋ ㄧㄝˋ", pinyin: "shù yè", en: "leaves" }, "天氣": { zhuyin: "ㄊㄧㄢ ㄑㄧˋ", pinyin: "tiān qì", en: "weather" }, "院子": { zhuyin: "ㄩㄢˋ ㄗ˙", pinyin: "yuàn zi", en: "yard" }, "顏色": { zhuyin: "ㄧㄢˊ ㄙㄜˋ", pinyin: "yán sè", en: "color" }, "舒服": { zhuyin: "ㄕㄨ ㄈㄨˊ", pinyin: "shū fú", en: "comfortable" },
+            "拜年": { zhuyin: "ㄅㄞˋ ㄋㄧㄢˊ", pinyin: "bài nián", en: "New Year greeting" }, "放鞭炮": { zhuyin: "ㄈㄤˋ ㄅㄧㄢ ㄆㄠˋ", pinyin: "fàng biān", en: "firecrackers" }, "給": { zhuyin: "ㄍㄟˇ", pinyin: "gěi", en: "to give" }, "紅包": { zhuyin: "ㄏㄨㄥˊ ㄅㄠ", pinyin: "hóng bāo", en: "red envelope" }, "會": { zhuyin: "ㄏㄨㄟˋ", pinyin: "huì", en: "will/can" }, "每": { zhuyin: "ㄇㄟˇ", pinyin: "měi", en: "every" }, "那天": { zhuyin: "ㄋㄚˋ ㄊㄧㄢ", pinyin: "nà tiān", en: "that day" }, "年糕": { zhuyin: "ㄋㄧㄢˊ ㄍㄠ", pinyin: "nián gāo", en: "rice cake" }, "如果": { zhuyin: "ㄖㄨˊ ㄍㄨㄛˇ", pinyin: "rú guǒ", en: "if" }, "說": { zhuyin: "ㄕㄨㄛ", pinyin: "shuō", en: "to say" }, "台灣": { zhuyin: "ㄊㄞˊ ㄨㄢ", pinyin: "Tái wān", en: "Taiwan" }, "貼春聯": { zhuyin: "ㄊㄧㄝ ㄔㄨㄣ ㄌㄧㄢˊ", pinyin: "tiē chūn", en: "spring couplets" }, "新年": { zhuyin: "ㄒㄧㄣ ㄋㄧㄢˊ", pinyin: "xīn nián", en: "New Year" }, "下": { zhuyin: "ㄒㄧㄚˋ", pinyin: "xià", en: "under/next" }, "星期": { zhuyin: "ㄒㄧㄥ ㄑㄧ", pinyin: "xīng qī", en: "week" }, "華人": { zhuyin: "ㄏㄨㄚˊ ㄖㄣˊ", pinyin: "Huá rén", en: "Chinese" }, "農曆": { zhuyin: "ㄋㄨㄥˊ ㄌㄧˋ", pinyin: "nóng lì", en: "lunar calendar" },
+            "別": { zhuyin: "ㄅㄧㄝˊ", pinyin: "bié", en: "don't" }, "肥皂": { zhuyin: "ㄈㄟˊ ㄗㄠˋ", pinyin: "féi zào", en: "soap" }, "乾淨": { zhuyin: "ㄍㄢ ㄐㄧㄥˋ", pinyin: "gān jìng", en: "clean" }, "該": { zhuyin: "ㄍㄞ", pinyin: "gāi", en: "should" }, "過": { zhuyin: "ㄍㄨㄛˋ", pinyin: "guò", en: "to pass" }, "趕快": { zhuyin: "ㄍㄢˇ ㄎㄨㄞˋ", pinyin: "gǎn kuài", en: "hurry up" }, "來不及": { zhuyin: "ㄌㄞˊ ㄅㄨˋ ㄐㄧˊ", pinyin: "lái bù jí", en: "too late" }, "累": { zhuyin: "ㄌㄟˋ", pinyin: "lèi", en: "tired" }, "起床": { zhuyin: "ㄑㄧˇ ㄔㄨㄤˊ", pinyin: "qǐ chuáng", en: "get up" }, "刷牙": { zhuyin: "ㄕㄨㄚ ㄧㄚˊ", pinyin: "shuā yá", en: "brush teeth" }, "睡覺": { zhuyin: "ㄕㄨㄟˋ ㄐㄧㄠˋ", pinyin: "shuì jiào", en: "to sleep" }, "晚上": { zhuyin: "ㄨㄢˇ ㄕㄤ˙", pinyin: "wǎn shang", en: "evening" }, "忘": { zhuyin: "ㄨㄤˋ", pinyin: "wàng", en: "forget" }, "洗": { zhuyin: "ㄒㄧˇ", pinyin: "xǐ", en: "to wash" }, "洗澡": { zhuyin: "ㄒㄧˇ ㄗㄠˇ", pinyin: "xǐ zǎo", en: "take a bath" }, "洗臉": { zhuyin: "ㄒㄧˇ ㄌㄧㄢˇ", pinyin: "xǐ liǎn", en: "wash face" }, "用": { zhuyin: "ㄩㄥˋ", pinyin: "yòng", en: "to use" }, "知道": { zhuyin: "ㄓ ㄉㄠˋ", pinyin: "zhī dào", en: "to know" }, "昨天": { zhuyin: "ㄗㄨㄛˊ ㄊㄧㄢ", pinyin: "zuó tiān", en: "yesterday" },
+            "不見了": { zhuyin: "ㄅㄨˊ ㄐㄧㄢˋ ㄌㄜ˙", pinyin: "bú jiàn", en: "disappeared" }, "寵物": { zhuyin: "ㄔㄨㄥˇ ㄨˋ", pinyin: "chǒng wù", en: "pet" }, "帶": { zhuyin: "ㄉㄞˋ", pinyin: "dài", en: "to bring" }, "非常": { zhuyin: "ㄈㄟ ㄔㄤˊ", pinyin: "fēi cháng", en: "very" }, "狗": { zhuyin: "ㄍㄡˇ", pinyin: "gǒu", en: "dog" }, "可愛": { zhuyin: "ㄎㄜˇ ㄞˋ", pinyin: "kě ài", en: "cute" }, "貓": { zhuyin: "ㄇㄠ", pinyin: "māo", en: "cat" }, "去年": { zhuyin: "ㄑㄩˋ ㄋㄧㄢˊ", pinyin: "qù nián", en: "last year" }, "送給": { zhuyin: "ㄙㄨㄥˋ ㄍㄟˇ", pinyin: "sòng gěi", en: "give to" }, "上個月": { zhuyin: "ㄕㄤˋ ㄍㄜ˙ ㄩㄝˋ", pinyin: "shàng ge", en: "last month" }, "牠們": { zhuyin: "ㄊㄚ ㄇㄣ˙", pinyin: "tā men", en: "they (animals)" }, "兔子": { zhuyin: "ㄊㄨˋ ㄗ˙", pinyin: "tù zi", en: "rabbit" }, "餵": { zhuyin: "ㄨㄟˋ", pinyin: "wèi", en: "to feed" }, "養": { zhuyin: "ㄧㄤˇ", pinyin: "yǎng", en: "to raise" }, "隻": { zhuyin: "ㄓ", pinyin: "zhī", en: "(measure word)" }, "散步": { zhuyin: "ㄙㄢˋ ㄅㄨˋ", pinyin: "sàn bù", en: "take a walk" },
+            "北方": { zhuyin: "ㄅㄟˇ ㄈㄤ", pinyin: "běi fāng", en: "north" }, "東方": { zhuyin: "ㄉㄨㄥ ㄈㄤ", pinyin: "dōng fāng", en: "east" }, "方向": { zhuyin: "ㄈㄤ ㄒㄧㄤˋ", pinyin: "fāng xiàng", en: "direction" }, "告訴": { zhuyin: "ㄍㄠˋ ㄙㄨˋ", pinyin: "gào sù", en: "to tell" }, "教室": { zhuyin: "ㄐㄧㄠˋ ㄕˋ", pinyin: "jiào shì", en: "classroom" }, "南方": { zhuyin: "ㄋㄢˊ ㄈㄤ", pinyin: "nán fāng", en: "south" }, "所以": { zhuyin: "ㄙㄨㄛˇ ㄧˇ", pinyin: "suǒ yǐ", en: "so" }, "它": { zhuyin: "ㄊㄚ", pinyin: "tā", en: "it" }, "校門口": { zhuyin: "ㄒㄧㄠˋ ㄇㄣˊ ㄎㄡˇ", pinyin: "xiào mén", en: "school gate" }, "西方": { zhuyin: "ㄒㄧ ㄈㄤ", pinyin: "xī fāng", en: "west" }, "因為": { zhuyin: "ㄧㄣ ㄨㄟˋ", pinyin: "yīn wèi", en: "because" }, "足球場": { zhuyin: "ㄗㄨˊ ㄑㄧㄡˊ ㄔㄤˇ", pinyin: "zú qiú", en: "football field" }, "指北針": { zhuyin: "ㄓˇ ㄅㄟˇ ㄓㄣ", pinyin: "zhǐ běi", en: "compass" }, "指南針": { zhuyin: "ㄓˇ ㄋㄢˊ ㄓㄣ", pinyin: "zhǐ nán", en: "compass" },
+            "本來": { zhuyin: "ㄅㄣˇ ㄌㄞˊ", pinyin: "běn lái", en: "originally" }, "法國": { zhuyin: "ㄈㄚˋ ㄍㄨㄛˊ", pinyin: "Fǎ guó", en: "France" }, "舅舅": { zhuyin: "ㄐㄧㄡˋ ㄐㄧㄡˋ", pinyin: "jiù jiù", en: "uncle" }, "看": { zhuyin: "ㄎㄢˋ", pinyin: "kàn", en: "to see" }, "旅行": { zhuyin: "ㄌㄩˇ ㄒㄧㄥˊ", pinyin: "lǚ xíng", en: "travel" }, "紐約": { zhuyin: "ㄋㄧㄡˇ ㄩㄝ", pinyin: "Niǔ yuē", en: "New York" }, "臺北": { zhuyin: "ㄊㄞˊ ㄅㄟˇ", pinyin: "Tái běi", en: "Taipei" }, "臺南": { zhuyin: "ㄊㄞˊ ㄋㄢˊ", pinyin: "Tái nán", en: "Tainan" }, "退休": { zhuyin: "ㄊㄨㄟˋ ㄒㄧㄡ", pinyin: "tuì xiū", en: "retire" }, "一次": { zhuyin: "ㄧˊ ㄘˋ", pinyin: "yí cì", en: "once" }, "住在": { zhuyin: "ㄓㄨˋ ㄗㄞˋ", pinyin: "zhù zài", en: "live in" }, "暑假": { zhuyin: "ㄕㄨˇ ㄐㄧㄚˋ", pinyin: "shǔ jià", en: "summer vacation" },
+            "不但": { zhuyin: "ㄅㄨˊ ㄉㄢˋ", pinyin: "bú dàn", en: "not only" }, "脖子": { zhuyin: "ㄅㄛˊ ㄗ˙", pinyin: "bó zi", en: "neck" }, "長頸鹿": { zhuyin: "ㄔㄤˊ ㄐㄧㄥˇ ㄌㄨˋ", pinyin: "cháng jǐng", en: "giraffe" }, "大象": { zhuyin: "ㄉㄚˋ ㄒㄧㄤˋ", pinyin: "dà xiàng", en: "elephant" }, "動物園": { zhuyin: "ㄉㄨㄥˋ ㄨˋ ㄩㄢˊ", pinyin: "dòng wù", en: "zoo" }, "猴子": { zhuyin: "ㄏㄡˊ ㄗ˙", pinyin: "hóu zi", en: "monkey" }, "看到": { zhuyin: "ㄎㄢˋ ㄉㄠˋ", pinyin: "kàn dào", en: "saw" }, "老虎": { zhuyin: "ㄌㄠˇ ㄏㄨˇ", pinyin: "lǎo hǔ", en: "tiger" }, "胖": { zhuyin: "ㄆㄤˋ", pinyin: "pàng", en: "fat" }, "企鵝": { zhuyin: "ㄑㄧˇ ㄜˊ", pinyin: "qǐ é", en: "penguin" }, "玩": { zhuyin: "ㄨㄢˊ", pinyin: "wán", en: "to play" }, "熊貓": { zhuyin: "ㄒㄩㄥˊ ㄇㄠ", pinyin: "xióng māo", en: "panda" }, "希望": { zhuyin: "ㄒㄧ ㄨㄤˋ", pinyin: "xī wàng", en: "to hope" }, "這一次": { zhuyin: "ㄓㄜˋ ㄧˊ ㄘˋ", pinyin: "zhè yí cì", en: "this time" }, "長": { zhuyin: "ㄔㄤˊ", pinyin: "cháng", en: "long" }, "真": { zhuyin: "ㄓㄣ", pinyin: "zhēn", en: "really" },
+            "啊": { zhuyin: "ㄚ˙", pinyin: "a", en: "ah" }, "過來": { zhuyin: "ㄍㄨㄛˋ ㄌㄞˊ", pinyin: "guò lái", en: "come over" }, "很久": { zhuyin: "ㄏㄣˇ ㄐㄧㄡˇ", pinyin: "hěn jiǔ", en: "long time" }, "好好": { zhuyin: "ㄏㄠˇ ㄏㄠˇ", pinyin: "hǎo hǎo", en: "well" }, "看起來": { zhuyin: "ㄎㄢˋ ㄑㄧˇ ㄌㄞˊ", pinyin: "kàn qǐ lái", en: "looks like" }, "沒問題": { zhuyin: "ㄇㄟˊ ㄨㄣˋ ㄊㄧˊ", pinyin: "méi wèn tí", en: "no problem" }, "上課": { zhuyin: "ㄕㄤˋ ㄎㄜˋ", pinyin: "shàng kè", en: "attend class" }, "說話": { zhuyin: "ㄕㄨㄛ ㄏㄨㄚˋ", pinyin: "shuō huà", en: "speak" }, "瘦": { zhuyin: "ㄕㄡˋ", pinyin: "shòu", en: "thin" }, "網路": { zhuyin: "ㄨㄤˇ ㄌㄨˋ", pinyin: "wǎng lù", en: "internet" }, "寫": { zhuyin: "ㄒㄧㄝˇ", pinyin: "xiě", en: "write" }, "信": { zhuyin: "ㄒㄧㄣˋ", pinyin: "xìn", en: "letter" }, "有意思": { zhuyin: "ㄧㄡˇ ㄧˋ ㄙ˙", pinyin: "yǒu yì si", en: "interesting" }, "一定": { zhuyin: "ㄧˊ ㄉㄧㄥˋ", pinyin: "yí dìng", en: "certainly" }, "影像": { zhuyin: "ㄧㄥˇ ㄒㄧㄤˋ", pinyin: "yǐng xiàng", en: "image" }, "長高": { zhuyin: "ㄓㄤˇ ㄍㄠ", pinyin: "zhǎng gāo", en: "grow taller" }
         };
 
+        // --- 音效系統 (使用 Tone.js) ---
         const SoundFX = {
             synth: null,
             noise: null,
@@ -551,8 +518,6 @@
             document.getElementById('label-final-score').textContent = langData.finalScore;
             document.getElementById('continue-btn').textContent = langData.continueBtn;
             document.getElementById('restart-btn').textContent = langData.menuBtn;
-            document.getElementById('copy-link-btn').textContent = langData.copyLinkBtn;
-            document.getElementById('toast').textContent = langData.copiedMsg;
 
             const select = document.getElementById('lesson-select');
             const currentVal = select.value;
@@ -565,28 +530,6 @@
         document.getElementById('lang-toggle').addEventListener('click', () => {
             currentLang = currentLang === 'zh' ? 'en' : 'zh';
             updateLanguage();
-        });
-
-        // 複製課程連結功能
-        document.getElementById('copy-link-btn').addEventListener('click', function() {
-            const selectedLesson = document.getElementById('lesson-select').value;
-            const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.set('lesson', selectedLesson);
-            
-            // 由於 iFrame 限制，使用 execCommand 作為安全備案
-            const tempInput = document.createElement("input");
-            tempInput.value = currentUrl.href;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
-            
-            // 顯示 Toast 提示
-            const toast = document.getElementById('toast');
-            toast.classList.add('show-toast');
-            setTimeout(() => {
-                toast.classList.remove('show-toast');
-            }, 2000);
         });
 
         function resizeCanvas() {
@@ -895,8 +838,8 @@
             currentTargetWord = targetWordStr;
             const dictInfo = dict[targetWordStr];
             
-            // 更新 UI
-            document.getElementById('target-word').textContent = `${dictInfo.pinyin} / ${dictInfo.en}`;
+            // 更新 UI (包含注音 / 拼音 / 英文)
+            document.getElementById('target-word').textContent = `${dictInfo.zhuyin} / ${dictInfo.pinyin} / ${dictInfo.en}`;
             document.getElementById('target-display').classList.remove('hidden');
             
             // 語音提示
@@ -1224,18 +1167,6 @@
 
         // 初始化
         initSelectOptions();
-        
-        // 檢查網址是否有 lesson 參數 (e.g. ?lesson=L01)
-        const urlParams = new URLSearchParams(window.location.search);
-        const lessonParam = urlParams.get('lesson');
-        if (lessonParam) {
-            const select = document.getElementById('lesson-select');
-            // 如果網址參數的課程在選單內存在，就自動選中
-            if (select.querySelector(`option[value="${lessonParam}"]`)) {
-                select.value = lessonParam;
-            }
-        }
-        
         updateLanguage();
         resizeCanvas();
         drawBackground(); // 初始背景
